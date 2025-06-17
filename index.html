@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Ballistic Calculator</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: #1e538d;
+        text-align: center;
+      }
+
+      #ballisticForm {
+        display: flex;
+        justify-content: space-around;
+        gap: 1rem;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      #ballisticForm label {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      #ballisticForm input,
+      #ballisticForm select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+
+      #ballisticForm button {
+        background-color: #1e538d;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      #ballisticForm button:hover {
+        background-color: #153a6b;
+        transform: scale(1.05);
+        transition: transform 0.2s;
+      }
+
+      #results {
+        display: flex;
+        justify-content: space-around;
+        gap: 1rem;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      #results p {
+        margin: 5px 0;
+      }
+
+      #status {
+        color: #50bc54;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Ballistic Calculator</h1>
+    <form id="ballisticForm">
+      <div>
+        <h2>Cannon Coordinates</h2>
+        <label for="xCannon">X:</label>
+        <input type="number" id="xCannon" name="xCannon" /><br />
+        <label for="yCannon">Y:</label>
+        <input type="number" id="yCannon" name="yCannon" /><br />
+        <label for="zCannon">Z:</label>
+        <input type="number" id="zCannon" name="zCannon" /><br />
+      </div>
+
+      <div>
+        <h2>Target Coordinates</h2>
+        <label for="xTarget">X:</label>
+        <input type="number" id="xTarget" name="xTarget" /><br />
+        <label for="yTarget">Y:</label>
+        <input type="number" id="yTarget" name="yTarget" /><br />
+        <label for="zTarget">Z:</label>
+        <input type="number" id="zTarget" name="zTarget" /><br />
+      </div>
+
+      <div>
+        <h2>Cannon Properties</h2>
+        <label for="power">Number of charges:</label>
+        <input type="number" id="power" name="power" /><br />
+        <label for="direction">Direction:</label>
+        <select id="direction" name="direction">
+          <option value="north">North</option>
+          <option value="south">South</option>
+          <option value="west">West</option>
+          <option value="east">East</option></select
+        ><br />
+        <label for="length">Length of the cannon:</label>
+        <input type="number" id="length" name="length" /><br />
+
+        <button type="button" onclick="calculate()">Calculate</button>
+      </div>
+    </form>
+
+    <p id="status">Waiting for calculation...</p>
+
+    <div id="results">
+      <div>
+        <h2>Results</h2>
+        <h3>Trajectory 1</h3>
+        <p id="yaw1">Yaw: unknown</p>
+        <p id="pitch1">Pitch: unknown</p>
+        <p id="airtime1">Airtime (ticks): unknown</p>
+        <p id="airtimeSeconds1">Airtime (seconds): unknown</p>
+        <p id="fuzeTime1">Fuze time (ticks): unknown</p>
+        <p id="precision1">Precision: unknown</p>
+      </div>
+
+      <div>
+        <h3>Trajectory 2</h3>
+        <p id="yaw2">Yaw: unknown</p>
+        <p id="pitch2">Pitch: unknown</p>
+        <p id="airtime2">Airtime (ticks): unknown</p>
+        <p id="airtimeSeconds2">Airtime (seconds): unknown</p>
+        <p id="fuzeTime2">Fuze time (ticks): unknown</p>
+        <p id="precision2">Precision: unknown</p>
+      </div>
+    </div>
+    <script>
+      function myLinspace(start, end, num) {
+        let answer = [start];
+        let delta = (end - start) / num;
+        for (let i = 1; i < num; i++) {
+          answer.push(answer[i - 1] + delta);
+        }
+        answer.push(end);
+        return answer;
+      }
+
+      function timeInAir(y0, y, Vy) {
+        let t = 0;
+        let t_below = 999999999;
+        if (y0 <= y) {
+          while (t < 100000) {
+            y0 += Vy;
+            Vy = 0.99 * Vy - 0.05;
+            t += 1;
+            if (y0 > y) {
+              t_below = t - 1;
+              break;
+            }
+            if (Vy < 0) {
+              return [-1, -1];
+            }
+          }
+        }
+        while (t < 100000) {
+          y0 += Vy;
+          Vy = 0.99 * Vy - 0.05;
+          t += 1;
+          if (y0 <= y) {
+            return [t_below, t];
+          }
+        }
+        return [-1, -1];
+      }
+
+      function getRoot(tab, sens) {
+        if (sens === 1) {
+          for (let i = 1; i < tab.length; i++) {
+            if (tab[i - 1][0] < tab[i][0]) {
+              return tab[i - 1];
+            }
+          }
+          return tab[tab.length - 1];
+        } else if (sens === -1) {
+          for (let i = tab.length - 2; i >= 0; i--) {
+            if (tab[i][0] > tab[i + 1][0]) {
+              return tab[i + 1];
+            }
+          }
+          return tab[0];
+        } else {
+          throw new Error("sens must be 1 or -1");
+        }
+      }
+
+      function tryAllAnglesUnique(
+        low,
+        high,
+        nbOfElements,
+        distance,
+        initialSpeed,
+        length,
+        cannonY,
+        targetY
+      ) {
+        let deltaTimes = [];
+        for (let triedPitch of myLinspace(low, high, nbOfElements)) {
+          let triedPitchRad = (triedPitch * Math.PI) / 180;
+          let Vw = Math.cos(triedPitchRad) * initialSpeed;
+          let Vy = Math.sin(triedPitchRad) * initialSpeed;
+          let xCoord_2d = length * Math.cos(triedPitchRad);
+          try {
+            let timeToTarget = Math.abs(
+              Math.log(1 - (distance - xCoord_2d) / (100 * Vw)) / Math.log(0.99)
+            );
+            let yCoordOfEndBarrel = cannonY + Math.sin(triedPitchRad) * length;
+            let [t_below, t_above] = timeInAir(yCoordOfEndBarrel, targetY, Vy);
+            if (t_below < 0) continue;
+            let deltaT = Math.min(
+              Math.abs(timeToTarget - t_below),
+              Math.abs(timeToTarget - t_above)
+            );
+            deltaTimes.push([deltaT, triedPitch, timeToTarget]);
+          } catch (e) {
+            continue;
+          }
+        }
+        if (deltaTimes.length === 0) {
+          throw new Error(
+            "The target is unreachable with your current cannon configuration!"
+          );
+        }
+        let minItem = deltaTimes.reduce(
+          (min, current) => (current[0] < min[0] ? current : min),
+          deltaTimes[0]
+        );
+        return minItem;
+      }
+
+      function tryAllAngles(
+        low,
+        high,
+        nbOfElements,
+        distance,
+        initialSpeed,
+        length,
+        cannonY,
+        targetY
+      ) {
+        let deltaTimes = [];
+        for (let triedPitch of myLinspace(low, high, nbOfElements)) {
+          let triedPitchRad = (triedPitch * Math.PI) / 180;
+          let Vw = Math.cos(triedPitchRad) * initialSpeed;
+          let Vy = Math.sin(triedPitchRad) * initialSpeed;
+          let xCoord_2d = length * Math.cos(triedPitchRad);
+          try {
+            let timeToTarget = Math.abs(
+              Math.log(1 - (distance - xCoord_2d) / (100 * Vw)) / Math.log(0.99)
+            );
+            let yCoordOfEndBarrel = cannonY + Math.sin(triedPitchRad) * length;
+            let [t_below, t_above] = timeInAir(yCoordOfEndBarrel, targetY, Vy);
+            if (t_below < 0) continue;
+            let deltaT = Math.min(
+              Math.abs(timeToTarget - t_below),
+              Math.abs(timeToTarget - t_above)
+            );
+            deltaTimes.push([deltaT, triedPitch, timeToTarget]);
+          } catch (e) {
+            continue;
+          }
+        }
+        if (deltaTimes.length === 0) {
+          throw new Error(
+            "The target is unreachable with your current cannon configuration!"
+          );
+        }
+        let root1 = getRoot(deltaTimes, 1);
+        let root2 = getRoot(deltaTimes, -1);
+        return [root1, root2];
+      }
+
+      function BallisticsToTarget(cannon, target, power, direction, length) {
+        let [Dx, Dz] = [cannon[0] - target[0], cannon[2] - target[2]];
+        let distance = Math.sqrt(Dx * Dx + Dz * Dz);
+        let initialSpeed = power * 2;
+        let nbOfIterations = 5;
+
+        let yaw;
+        if (Dx !== 0) {
+          yaw = Math.atan(Dz / Dx) * (180 / Math.PI);
+        } else {
+          yaw = 90;
+        }
+        if (Dx >= 0) {
+          yaw += 180;
+        }
+
+        let [root1, root2] = tryAllAngles(
+          -30,
+          60,
+          91,
+          distance,
+          initialSpeed,
+          length,
+          cannon[1],
+          target[1]
+        );
+        let [deltaTime1, pitch1, airtime1] = root1;
+        let [deltaTime2, pitch2, airtime2] = root2;
+
+        for (let i = 0; i < nbOfIterations; i++) {
+          [deltaTime1, pitch1, airtime1] = tryAllAnglesUnique(
+            pitch1 - Math.pow(10, -i),
+            pitch1 + Math.pow(10, -i),
+            21,
+            distance,
+            initialSpeed,
+            length,
+            cannon[1],
+            target[1]
+          );
+          [deltaTime2, pitch2, airtime2] = tryAllAnglesUnique(
+            pitch2 - Math.pow(10, -i),
+            pitch2 + Math.pow(10, -i),
+            21,
+            distance,
+            initialSpeed,
+            length,
+            cannon[1],
+            target[1]
+          );
+        }
+
+        if (pitch1 > 60.5) {
+          pitch1 = "Over 60";
+        } else if (pitch1 < -29.5) {
+          pitch1 = "Under -30";
+        }
+
+        if (pitch2 > 60.5) {
+          pitch2 = "Over 60";
+        } else if (pitch2 < -29.5) {
+          pitch2 = "Under -30";
+        }
+
+        let airtimeSeconds1 = airtime1 / 20;
+        let airtimeSeconds2 = airtime2 / 20;
+
+        if (direction === "north") {
+          yaw = (yaw + 90) % 360;
+        } else if (direction === "west") {
+          yaw = (yaw + 180) % 360;
+        } else if (direction === "south") {
+          yaw = (yaw + 270) % 360;
+        } else if (direction !== "east") {
+          return "Invalid direction";
+        }
+
+        let fuzeTime1 = Math.floor(airtime1 + deltaTime1 / 2 - 10);
+        let fuzeTime2 = Math.floor(airtime2 + deltaTime2 / 2 - 10);
+
+        let precision1 = Math.round((1 - deltaTime1 / airtime1) * 100);
+        let precision2 = Math.round((1 - deltaTime2 / airtime2) * 100);
+
+        return [
+          [
+            yaw,
+            pitch1,
+            airtime1,
+            airtimeSeconds1.toFixed(2),
+            fuzeTime1,
+            precision1,
+          ],
+          [
+            yaw,
+            pitch2,
+            airtime2,
+            airtimeSeconds2.toFixed(2),
+            fuzeTime2,
+            precision2,
+          ],
+        ];
+      }
+
+      function calculate() {
+        let xCannon = parseFloat(document.getElementById("xCannon").value);
+        let yCannon = parseFloat(document.getElementById("yCannon").value);
+        let zCannon = parseFloat(document.getElementById("zCannon").value);
+        let xTarget = parseFloat(document.getElementById("xTarget").value);
+        let yTarget = parseFloat(document.getElementById("yTarget").value);
+        let zTarget = parseFloat(document.getElementById("zTarget").value);
+        let power = parseInt(document.getElementById("power").value);
+        let direction = document.getElementById("direction").value;
+        let length = parseInt(document.getElementById("length").value);
+
+        if (
+          isNaN(xCannon) ||
+          isNaN(yCannon) ||
+          isNaN(zCannon) ||
+          isNaN(xTarget) ||
+          isNaN(yTarget) ||
+          isNaN(zTarget) ||
+          isNaN(power) ||
+          isNaN(length)
+        ) {
+          document.getElementById("status").innerText =
+            "Please fill all fields with numbers.";
+          return;
+        }
+
+        let cannon = [xCannon, yCannon, zCannon];
+        let target = [xTarget, yTarget, zTarget];
+
+        try {
+          let [result1, result2] = BallisticsToTarget(
+            cannon,
+            target,
+            power,
+            direction,
+            length
+          );
+
+          document.getElementById("yaw1").innerText =
+            "Yaw: " + result1[0].toFixed(2) + " degrees";
+          document.getElementById("pitch1").innerText =
+            "Pitch: " +
+            (typeof result1[1] === "string"
+              ? result1[1]
+              : result1[1].toFixed(2) + " degrees");
+          document.getElementById("airtime1").innerText =
+            "Airtime (ticks): " + result1[2].toFixed(0);
+          document.getElementById("airtimeSeconds1").innerText =
+            "Airtime (seconds): " + result1[3];
+          document.getElementById("fuzeTime1").innerText =
+            "Fuze time (ticks): " + result1[4];
+          document.getElementById("precision1").innerText =
+            "Precision: " + result1[5] + "%";
+
+          document.getElementById("yaw2").innerText =
+            "Yaw: " + result2[0].toFixed(2) + " degrees";
+          document.getElementById("pitch2").innerText =
+            "Pitch: " +
+            (typeof result2[1] === "string"
+              ? result2[1]
+              : result2[1].toFixed(2) + " degrees");
+          document.getElementById("airtime2").innerText =
+            "Airtime (ticks): " + result2[2].toFixed(0);
+          document.getElementById("airtimeSeconds2").innerText =
+            "Airtime (seconds): " + result2[3];
+          document.getElementById("fuzeTime2").innerText =
+            "Fuze time (ticks): " + result2[4];
+          document.getElementById("precision2").innerText =
+            "Precision: " + result2[5] + "%";
+
+          document.getElementById("status").innerText = "Calculated!";
+        } catch (e) {
+          document.getElementById("status").innerText = e.message;
+        }
+      }
+    </script>
+  </body>
+</html>
