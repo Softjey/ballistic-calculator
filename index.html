@@ -268,7 +268,7 @@
               id="xTarget"
               step="0.1"
               placeholder="X coordinate"
-              value="101"
+              value="645"
             />
           </div>
           <div class="form-row">
@@ -278,7 +278,7 @@
               id="yTarget"
               step="0.1"
               placeholder="Y coordinate"
-              value="-30"
+              value="-49"
             />
           </div>
           <div class="form-row">
@@ -288,7 +288,7 @@
               id="zTarget"
               step="0.1"
               placeholder="Z coordinate"
-              value="-184"
+              value="225"
             />
           </div>
         </div>
@@ -876,6 +876,7 @@
           const deltaZ = cannonZ - targetZ;
           const distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
           const initialSpeed = power * this.SPEED_MULTIPLIER;
+          console.log({initialSpeed, power})
 
           if (distance === 0) {
             throw new Error("Cannon and target are at the same position");
@@ -948,6 +949,74 @@
         }
       }
 
+      class GearshiftCommandsCalculator {
+        static GEARSHIFT_FACTOR = 8;
+        static MAX_GEARSHIFT_ANGLE_PER_COMMAND = 360;
+        static YAW_GEARSHIFT_ERROR_COEFFICIENT = 0.0375;
+
+        static calculatePitchCommands(currentPitch, targetPitch) {}
+
+        static calculateYawCommands(
+          rawCurrentYaw,
+          rawTargetYaw,
+          gearshiftSpeed
+        ) {
+          // console.log({
+          //   rawCurrentYaw,
+          //   rawTargetYaw,
+          //   gearshiftSpeed
+          // })
+          // const gearshiftError =
+            // gearshiftSpeed * this.YAW_GEARSHIFT_ERROR_COEFFICIENT;
+          const gearshiftError = 0;
+
+          const currentYaw = ((rawCurrentYaw % 360) + 360) % 360;
+          const targetYaw = ((rawTargetYaw % 360) + 360) % 360;
+
+          let delta = targetYaw - currentYaw;
+          if (delta > 180) delta -= 360;
+          if (delta < -180) delta += 360;
+
+          const gearshiftDegrees = delta * this.GEARSHIFT_FACTOR;
+          const sign = Math.sign(gearshiftDegrees);
+          const absDegrees = Math.abs(gearshiftDegrees);
+
+          const effectiveCommand =
+            this.MAX_GEARSHIFT_ANGLE_PER_COMMAND + gearshiftError;
+          const fullAmount = Math.floor(absDegrees / effectiveCommand);
+          const usedDegrees = fullAmount * effectiveCommand;
+          const remaining = absDegrees - usedDegrees;
+
+          const commands = Array.from(
+            { length: fullAmount },
+            () => this.MAX_GEARSHIFT_ANGLE_PER_COMMAND * sign
+          );
+
+          if (remaining > 0) {
+            // Для останньої команди скоригувати команду з урахуванням похибки:
+            const correctedFinalCommand = (remaining - gearshiftError) * sign;
+            commands.push(correctedFinalCommand);
+          }
+
+          return commands.join(", ");
+        }
+
+        static calculateCommands(yaw, pitch) {
+          return {
+            yawCommands: this.calculateYawCommands(
+              yaw.currentAngel,
+              yaw.targetAngel,
+              yaw.gearshiftSpeed
+            ),
+            pitchCommands: this.calculatePitchCommands(
+              pitch.currentAngel,
+              pitch.targetAngel,
+              pitch.gearshiftSpeed
+            ),
+          };
+        }
+      }
+
       // Usage example and calculator function
       function calculate() {
         try {
@@ -966,12 +1035,23 @@
           const power = parseInt(document.getElementById("power").value);
           const direction = document.getElementById("direction").value;
           const length = parseInt(document.getElementById("length").value);
+          const currentPitch = parseFloat(
+            document.getElementById("currentPitch").value
+          );
+          const currentYaw = parseFloat(
+            document.getElementById("currentYaw").value
+          );
 
           // Validate inputs
           if (
-            [...cannonPos, ...targetPos, power, length].some((val) =>
-              isNaN(val)
-            )
+            [
+              ...cannonPos,
+              ...targetPos,
+              power,
+              length,
+              currentYaw,
+              currentPitch,
+            ].some((val) => isNaN(val))
           ) {
             throw new Error("Please fill all fields with valid numbers");
           }
@@ -980,13 +1060,44 @@
             throw new Error("Power and length must be positive numbers");
           }
 
-          const [result1, result2] = BallisticsCalculator.calculateTrajectory(
-            cannonPos,
-            targetPos,
-            power,
-            direction,
-            length
-          );
+          const [calcResult1, calcResult2] =
+            BallisticsCalculator.calculateTrajectory(
+              cannonPos,
+              targetPos,
+              power,
+              direction,
+              length
+            );
+          const result1 = {
+            ...calcResult1,
+            ...GearshiftCommandsCalculator.calculateCommands(
+               {
+                currentAngel: currentYaw,
+                targetAngel: parseFloat(calcResult2.yaw),
+                gearshiftSpeed: 16,
+              },
+              {
+                currentAngel: currentPitch,
+                targetAngel: parseFloat(calcResult2.pitch),
+                gearshiftSpeed: 16,
+              }
+            ),
+          };
+          const result2 = {
+            ...calcResult2,
+            ...GearshiftCommandsCalculator.calculateCommands(
+              {
+                currentAngel: currentYaw,
+                targetAngel: parseFloat(calcResult2.yaw),
+                gearshiftSpeed: 32,
+              },
+              {
+                currentAngel: currentPitch,
+                targetAngel: parseFloat(calcResult2.pitch),
+                gearshiftSpeed: 32,
+              }
+            ),
+          };
 
           // Update UI with results
           updateResultDisplay("1", result1);
@@ -1021,11 +1132,10 @@
           `precision${suffix}`
         ).textContent = `${result.precision}`;
 
-        // Placeholder for gearshift commands - will be implemented later
         document.getElementById(`pitchCommands${suffix}`).textContent =
-          "Not implemented yet";
+          result.pitchCommands;
         document.getElementById(`yawCommands${suffix}`).textContent =
-          "Not implemented yet";
+          result.yawCommands;
       }
     </script>
   </body>
