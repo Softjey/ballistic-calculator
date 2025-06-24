@@ -876,7 +876,6 @@
           const deltaZ = cannonZ - targetZ;
           const distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
           const initialSpeed = power * this.SPEED_MULTIPLIER;
-          console.log({initialSpeed, power})
 
           if (distance === 0) {
             throw new Error("Cannon and target are at the same position");
