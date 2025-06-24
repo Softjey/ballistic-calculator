@@ -1085,14 +1085,14 @@
           const result1 = {
             ...calcResult1,
             ...GearshiftCommandsCalculator.calculateCommands(
-               {
+              {
                 currentAngel: currentYaw,
-                targetAngel: parseFloat(calcResult2.yaw),
+                targetAngel: parseFloat(calcResult1.yaw),
                 gearshiftSpeed: 16,
               },
               {
                 currentAngel: currentPitch,
-                targetAngel: parseFloat(calcResult2.pitch),
+                targetAngel: parseFloat(calcResult1.pitch),
                 gearshiftSpeed: 16,
               }
             ),
