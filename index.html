@@ -238,6 +238,41 @@
         color: #495057;
         font-weight: bold;
       }
+
+      .target-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-bottom: 15px;
+      }
+
+      .target-tab {
+        padding: 8px 12px;
+        background: #e9ecef;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+      }
+
+      .target-tab.active {
+        background: #007bff;
+        color: white;
+        border-color: #0069d9;
+      }
+
+      .target-results {
+        margin-top: 20px;
+      }
+
+      .target-result {
+        display: none;
+      }
+
+      .target-result.active {
+        display: block;
+      }
     </style>
   </head>
   <body>
@@ -310,6 +345,41 @@
               placeholder="Z coordinate"
               value="-314"
             />
+          </div>
+          <div
+            class="form-row"
+            style="justify-content: center; margin-top: 10px"
+          >
+            <button
+              onclick="addCurrentTarget()"
+              style="
+                padding: 8px 15px;
+                background: #6f42c1;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+              "
+            >
+              Add Current Target to List
+            </button>
+          </div>
+          <div
+            class="form-row"
+            style="flex-direction: column; margin-top: 15px"
+          >
+            <label for="targets">Target List (one per line):</label>
+            <textarea
+              id="targets"
+              rows="5"
+              style="width: 100%; resize: vertical; font-family: monospace"
+              placeholder="Format: x,y,z (one target per line)&#10;627,-49,-314&#10;700,-30,-250"
+            >
+627,-49,-314</textarea
+            >
+            <div style="margin-top: 5px; font-size: 0.9em; color: #6c757d">
+              Enter each target's coordinates on a new line in the format: x,y,z
+            </div>
           </div>
         </div>
 
@@ -403,42 +473,12 @@
       <div class="results">
         <div class="result-group">
           <h3>🎯 Solution 1 (Low Angle)</h3>
-          <div class="result-item">
-            <span class="result-label">Yaw:</span>
-            <span class="result-value" id="yaw1">-</span>
-          </div>
-          <div class="result-item">
-            <span class="result-label">Pitch:</span>
-            <span class="result-value" id="pitch1">-</span>
-          </div>
-          <div class="result-item">
-            <span class="result-label">Airtime (ticks):</span>
-            <span class="result-value" id="airtime1">-</span>
-          </div>
-          <div class="result-item">
-            <span class="result-label">Airtime (seconds):</span>
-            <span class="result-value" id="airtimeSeconds1">-</span>
-          </div>
-          <div class="result-item">
-            <span class="result-label">Fuze time:</span>
-            <span class="result-value" id="fuzeTime1">-</span>
-          </div>
-          <div class="result-item">
-            <span class="result-label">Precision:</span>
-            <span class="result-value" id="precision1">-</span>
-          </div>
 
-          <div class="gearshift-commands">
-            <h4>⚙️ Sequenced Gearshift Commands</h4>
-            <div class="command-item">
-              <span class="result-label">Pitch Commands:</span>
-              <span class="result-value" id="pitchCommands1">-</span>
-            </div>
-            <div class="command-item">
-              <span class="result-label">Yaw Commands:</span>
-              <span class="result-value" id="yawCommands1">-</span>
-            </div>
-          </div>
+          <!-- Target selection tabs (will be populated dynamically) -->
+          <div id="targetTabs1" class="target-tabs"></div>
+
+          <!-- Results container for all targets (will be populated dynamically) -->
+          <div id="targetResults1" class="target-results"></div>
 
           <div class="canvas-container">
             <div class="canvas-title">Effective Area (Low Angle)</div>
@@ -451,42 +491,12 @@
 
         <div class="result-group">
           <h3>🎯 Solution 2 (High Angle)</h3>
-          <div class="result-item">
-            <span class="result-label">Yaw:</span>
-            <span class="result-value" id="yaw2">-</span>
-          </div>
-          <div class="result-item">
-            <span class="result-label">Pitch:</span>
-            <span class="result-value" id="pitch2">-</span>
-          </div>
-          <div class="result-item">
-            <span class="result-label">Airtime (ticks):</span>
-            <span class="result-value" id="airtime2">-</span>
-          </div>
-          <div class="result-item">
-            <span class="result-label">Airtime (seconds):</span>
-            <span class="result-value" id="airtimeSeconds2">-</span>
-          </div>
-          <div class="result-item">
-            <span class="result-label">Fuze time:</span>
-            <span class="result-value" id="fuzeTime2">-</span>
-          </div>
-          <div class="result-item">
-            <span class="result-label">Precision:</span>
-            <span class="result-value" id="precision2">-</span>
-          </div>
 
-          <div class="gearshift-commands">
-            <h4>⚙️ Sequenced Gearshift Commands</h4>
-            <div class="command-item">
-              <span class="result-label">Pitch Commands:</span>
-              <span class="result-value" id="pitchCommands2">-</span>
-            </div>
-            <div class="command-item">
-              <span class="result-label">Yaw Commands:</span>
-              <span class="result-value" id="yawCommands2">-</span>
-            </div>
-          </div>
+          <!-- Target selection tabs (will be populated dynamically) -->
+          <div id="targetTabs2" class="target-tabs"></div>
+
+          <!-- Results container for all targets (will be populated dynamically) -->
+          <div id="targetResults2" class="target-results"></div>
 
           <div class="canvas-container">
             <div class="canvas-title">Effective Area (High Angle)</div>
@@ -525,6 +535,40 @@
       document.addEventListener("DOMContentLoaded", function () {
         updateCurrentAngles();
       });
+
+      // Function to add the currently displayed target to the targets list
+      function addCurrentTarget() {
+        const xTarget = document.getElementById("xTarget").value;
+        const yTarget = document.getElementById("yTarget").value;
+        const zTarget = document.getElementById("zTarget").value;
+
+        // Validate inputs
+        if (
+          [xTarget, yTarget, zTarget].some(
+            (val) => !val || isNaN(parseFloat(val))
+          )
+        ) {
+          alert("Please enter valid coordinates for the target");
+          return;
+        }
+
+        const targetCoord = `${xTarget},${yTarget},${zTarget}`;
+        const targetsTextarea = document.getElementById("targets");
+        const currentTargets = targetsTextarea.value.trim();
+
+        // Add the new target to the list
+        if (currentTargets) {
+          // Check if this target already exists in the list to avoid duplicates
+          const targetLines = currentTargets.split("\n");
+          if (!targetLines.includes(targetCoord)) {
+            targetsTextarea.value = `${currentTargets}\n${targetCoord}`;
+          } else {
+            alert("This target is already in the list");
+          }
+        } else {
+          targetsTextarea.value = targetCoord;
+        }
+      }
 
       class BallisticsCalculator {
         // Physics constants based on Create Big Cannons mechanics
@@ -1177,11 +1221,28 @@
             parseFloat(document.getElementById("zCannon").value),
           ];
 
-          const targetPos = [
-            parseFloat(document.getElementById("xTarget").value),
-            parseFloat(document.getElementById("yTarget").value),
-            parseFloat(document.getElementById("zTarget").value),
-          ];
+          // Parse multiple targets from textarea
+          const targetsText = document.getElementById("targets").value.trim();
+          const targetsLines = targetsText
+            .split("\n")
+            .filter((line) => line.trim());
+
+          if (targetsLines.length === 0) {
+            throw new Error("Please add at least one target coordinate");
+          }
+
+          // Parse all target positions
+          const targetsList = targetsLines.map((line, index) => {
+            const parts = line
+              .split(",")
+              .map((part) => parseFloat(part.trim()));
+            if (parts.length !== 3 || parts.some((val) => isNaN(val))) {
+              throw new Error(
+                `Invalid target format on line ${index + 1}. Use format: x,y,z`
+              );
+            }
+            return parts;
+          });
 
           const power = parseInt(document.getElementById("power").value);
           const direction = document.getElementById("direction").value;
@@ -1195,69 +1256,82 @@
 
           // Validate inputs
           if (
-            [
-              ...cannonPos,
-              ...targetPos,
-              power,
-              length,
-              currentYaw,
-              currentPitch,
-            ].some((val) => isNaN(val))
+            [...cannonPos, power, length, currentYaw, currentPitch].some(
+              (val) => isNaN(val)
+            )
           ) {
-            throw new Error("Please fill all fields with valid numbers");
+            throw new Error("Please fill all cannon fields with valid numbers");
           }
 
           if (power <= 0 || length <= 0) {
             throw new Error("Power and length must be positive numbers");
           }
 
-          const [calcResult1, calcResult2] =
-            BallisticsCalculator.calculateTrajectory(
-              cannonPos,
+          // Array to store all results
+          const allResults = [];
+
+          // Calculate trajectory for each target
+          for (let i = 0; i < targetsList.length; i++) {
+            const targetPos = targetsList[i];
+
+            // Calculate trajectory for this target
+            const [calcResult1, calcResult2] =
+              BallisticsCalculator.calculateTrajectory(
+                cannonPos,
+                targetPos,
+                power,
+                direction,
+                length
+              );
+
+            const result1 = {
+              ...calcResult1,
+              ...GearshiftCommandsCalculator.calculateCommands(
+                {
+                  currentAngel: currentYaw,
+                  targetAngel: parseFloat(calcResult1.yaw),
+                  gearshiftSpeed: 16,
+                },
+                {
+                  currentAngel: currentPitch,
+                  targetAngel: parseFloat(calcResult1.pitch),
+                  gearshiftSpeed: 16,
+                }
+              ),
+              targetIndex: i,
               targetPos,
-              power,
-              direction,
-              length
-            );
-          const result1 = {
-            ...calcResult1,
-            ...GearshiftCommandsCalculator.calculateCommands(
-              {
-                currentAngel: currentYaw,
-                targetAngel: parseFloat(calcResult1.yaw),
-                gearshiftSpeed: 16,
-              },
-              {
-                currentAngel: currentPitch,
-                targetAngel: parseFloat(calcResult1.pitch),
-                gearshiftSpeed: 16,
-              }
-            ),
-          };
-          const result2 = {
-            ...calcResult2,
-            ...GearshiftCommandsCalculator.calculateCommands(
-              {
-                currentAngel: currentYaw,
-                targetAngel: parseFloat(calcResult2.yaw),
-                gearshiftSpeed: 64,
-              },
-              {
-                currentAngel: currentPitch,
-                targetAngel: parseFloat(calcResult2.pitch),
-                gearshiftSpeed: 64,
-              }
-            ),
-          };
+            };
 
-          // Update UI with results
-          updateResultDisplay("1", result1);
-          updateResultDisplay("2", result2);
+            const result2 = {
+              ...calcResult2,
+              ...GearshiftCommandsCalculator.calculateCommands(
+                {
+                  currentAngel: currentYaw,
+                  targetAngel: parseFloat(calcResult2.yaw),
+                  gearshiftSpeed: 64,
+                },
+                {
+                  currentAngel: currentPitch,
+                  targetAngel: parseFloat(calcResult2.pitch),
+                  gearshiftSpeed: 64,
+                }
+              ),
+              targetIndex: i,
+              targetPos,
+            };
 
-          // Calculate precision grid (with low resolution for performance)
+            allResults.push({
+              target: targetPos,
+              solution1: result1,
+              solution2: result2,
+            });
+          }
+
+          // Update UI with results for all targets
+          updateMultiTargetResultDisplay(allResults);
+
           const statusElement = document.getElementById("status");
-          statusElement.textContent =
-            "Calculation successful! Now calculating effective areas...";
+          statusElement.textContent = `Calculation successful for ${allResults.length} target(s)! Now calculating effective areas...`;
           statusElement.className = "status success";
 
           // Set loading indicators for canvases
@@ -1283,19 +1357,19 @@
                 40 // Resolution (higher number = faster but less detailed)
               );
 
-              // Visualize the effective areas on canvases
+              // Visualize the effective areas on canvases with all targets
               visualizeEffectiveArea(
                 "canvas1",
                 gridData,
                 cannonPos,
-                targetPos,
+                targetsList,
                 "low"
               );
               visualizeEffectiveArea(
                 "canvas2",
                 gridData,
                 cannonPos,
-                targetPos,
+                targetsList,
                 "high"
               );
 
@@ -1309,8 +1383,7 @@
               document.getElementById("canvas2Loading").className =
                 "status success";
 
-              statusElement.textContent =
-                "Calculation and visualization successful!";
+              statusElement.textContent = `Calculation and visualization successful for ${allResults.length} target(s)!`;
             } catch (calcError) {
               console.error("Visualization error:", calcError);
               document.getElementById("canvas1Loading").textContent =
@@ -1363,14 +1436,14 @@
        * @param {string} canvasId - The ID of the canvas element to draw on
        * @param {Object} gridData - Precision data from analyzePrecisionGrid
        * @param {Array} cannonPos - The [x, y, z] coordinates of the cannon
-       * @param {Array} targetPos - The [x, y, z] coordinates of the target
+       * @param {Array} targetsList - Array of target position arrays
        * @param {string} solutionType - Which solution to visualize ("low" or "high")
        */
       function visualizeEffectiveArea(
         canvasId,
         gridData,
         cannonPos,
-        targetPos,
+        targetsList,
         solutionType = "low"
       ) {
         const canvas = document.getElementById(canvasId);
@@ -1483,27 +1556,52 @@
         ctx.beginPath();
         ctx.arc(canvasCannonX, canvasCannonZ, 5, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = "black";
+        ctx.font = "12px Arial";
         ctx.fillText("Cannon", canvasCannonX + 8, canvasCannonZ + 4);
 
-        // Draw the target position (if within range)
-        if (targetPos) {
+        // Draw all target positions
+        const targetColors = [
+          "#008800", // Dark green
+          "#880088", // Purple
+          "#888800", // Yellow
+          "#008888", // Teal
+          "#664400", // Brown
+        ];
+
+        targetsList.forEach((targetPos, index) => {
           const [canvasTargetX, canvasTargetZ] = worldToCanvas(
             targetPos[0],
             targetPos[2]
           );
-          ctx.fillStyle = "green";
+
+          // Get color for this target (cycle through colors if more targets than colors)
+          const colorIndex = index % targetColors.length;
+          ctx.fillStyle = targetColors[colorIndex];
+
+          // Draw target point
           ctx.beginPath();
           ctx.arc(canvasTargetX, canvasTargetZ, 5, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillText("Target", canvasTargetX + 8, canvasTargetZ + 4);
+
+          // Draw target label
+          ctx.fillText(
+            `Target ${index + 1}`,
+            canvasTargetX + 8,
+            canvasTargetZ + 4
+          );
 
           // Draw a line connecting cannon and target
-          ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+          ctx.strokeStyle = targetColors[colorIndex];
+          ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.moveTo(canvasCannonX, canvasCannonZ);
           ctx.lineTo(canvasTargetX, canvasTargetZ);
           ctx.stroke();
-        }
+
+          // Reset line width
+          ctx.lineWidth = 1;
+        });
 
         // Add legend
         ctx.fillStyle = "black";
@@ -1546,6 +1644,144 @@
         ctx.fillStyle = "black";
         ctx.fillText("100%", legendX - 30, legendY + 10);
         ctx.fillText("0%", legendX - 20, legendY + legendHeight - 5);
+      }
+
+      function updateMultiTargetResultDisplay(allResults) {
+        // Create templates for target result content
+        const createResultTemplate = (index, suffix) => {
+          const result = allResults[index][`solution${suffix}`];
+          const targetPos = result.targetPos;
+
+          return `
+            <div class="target-result ${
+              index === 0 ? "active" : ""
+            }" data-target="${index}">
+              <div class="result-item">
+                <span class="result-label">Target:</span>
+                <span class="result-value">${targetPos[0]}, ${targetPos[1]}, ${
+            targetPos[2]
+          }</span>
+              </div>
+              <div class="result-item">
+                <span class="result-label">Yaw:</span>
+                <span class="result-value">${result.yaw}°</span>
+              </div>
+              <div class="result-item">
+                <span class="result-label">Pitch:</span>
+                <span class="result-value">${result.pitch}</span>
+              </div>
+              <div class="result-item">
+                <span class="result-label">Airtime (ticks):</span>
+                <span class="result-value">${result.airtimeTicks}</span>
+              </div>
+              <div class="result-item">
+                <span class="result-label">Airtime (seconds):</span>
+                <span class="result-value">${result.airtimeSeconds}</span>
+              </div>
+              <div class="result-item">
+                <span class="result-label">Fuze time:</span>
+                <span class="result-value">${result.fuzeTime}</span>
+              </div>
+              <div class="result-item">
+                <span class="result-label">Precision:</span>
+                <span class="result-value">${result.precision}</span>
+              </div>
+
+              <div class="gearshift-commands">
+                <h4>⚙️ Sequenced Gearshift Commands</h4>
+                <div class="command-item">
+                  <span class="result-label">Pitch Commands:</span>
+                  <span class="result-value">${result.pitchCommands}</span>
+                </div>
+                <div class="command-item">
+                  <span class="result-label">Yaw Commands:</span>
+                  <span class="result-value">${result.yawCommands}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        };
+
+        // Create tabs for each target
+        const createTabsHtml = (index, suffix) => {
+          let html = "";
+          for (let i = 0; i < allResults.length; i++) {
+            const targetPos = allResults[i].target;
+            const isActive = i === 0 ? "active" : "";
+            html += `<div class="target-tab ${isActive}" data-target="${i}" data-suffix="${suffix}">
+              Target ${i + 1}: ${targetPos[0]},${targetPos[1]},${targetPos[2]}
+            </div>`;
+          }
+          return html;
+        };
+
+        // Update low angle results (solution 1)
+        const targetTabs1 = document.getElementById("targetTabs1");
+        targetTabs1.innerHTML = createTabsHtml(0, "1");
+
+        const targetResults1 = document.getElementById("targetResults1");
+        targetResults1.innerHTML = allResults
+          .map((_, index) => createResultTemplate(index, "1"))
+          .join("");
+
+        // Update high angle results (solution 2)
+        const targetTabs2 = document.getElementById("targetTabs2");
+        targetTabs2.innerHTML = createTabsHtml(0, "2");
+
+        const targetResults2 = document.getElementById("targetResults2");
+        targetResults2.innerHTML = allResults
+          .map((_, index) => createResultTemplate(index, "2"))
+          .join("");
+
+        // Add event listeners to tabs
+        document.querySelectorAll(".target-tab").forEach((tab) => {
+          tab.addEventListener("click", function () {
+            const targetIndex = this.dataset.target;
+            const suffix = this.dataset.suffix;
+
+            // Update active tab
+            document
+              .querySelectorAll(`.target-tab[data-suffix="${suffix}"]`)
+              .forEach((t) => t.classList.remove("active"));
+            this.classList.add("active");
+
+            // Show corresponding result
+            document
+              .querySelectorAll(`#targetResults${suffix} .target-result`)
+              .forEach((r) => r.classList.remove("active"));
+            document
+              .querySelector(
+                `#targetResults${suffix} .target-result[data-target="${targetIndex}"]`
+              )
+              .classList.add("active");
+          });
+        });
+      }
+
+      function addCurrentTarget() {
+        const x = parseFloat(document.getElementById("xTarget").value);
+        const y = parseFloat(document.getElementById("yTarget").value);
+        const z = parseFloat(document.getElementById("zTarget").value);
+
+        if (isNaN(x) || isNaN(y) || isNaN(z)) {
+          alert("Invalid target coordinates");
+          return;
+        }
+
+        const targetLine = `${x},${y},${z}`;
+        const targetsArea = document.getElementById("targets");
+
+        // Add the new target to the existing list
+        if (targetsArea.value.trim()) {
+          targetsArea.value += `\n${targetLine}`;
+        } else {
+          targetsArea.value = targetLine;
+        }
+
+        // Clear the individual target fields
+        document.getElementById("xTarget").value = "";
+        document.getElementById("yTarget").value = "";
+        document.getElementById("zTarget").value = "";
       }
     </script>
   </body>
