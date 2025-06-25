@@ -1294,6 +1294,13 @@
             const target = targetsList[i];
             const targetPos = target.coords;
             
+            // Calculate 3D Euclidean distance between cannon and target
+            const distance3D = Math.sqrt(
+              Math.pow(cannonPos[0] - targetPos[0], 2) + 
+              Math.pow(cannonPos[1] - targetPos[1], 2) + 
+              Math.pow(cannonPos[2] - targetPos[2], 2)
+            );
+            
             // Calculate trajectory for this target
             const [calcResult1, calcResult2] = BallisticsCalculator.calculateTrajectory(
               cannonPos,
@@ -1319,7 +1326,8 @@
               ),
               targetIndex: i,
               targetPos,
-              targetName: target.name
+              targetName: target.name,
+              distance3D: distance3D.toFixed(2) // Add the distance to result
             };
             
             const result2 = {
@@ -1338,7 +1346,8 @@
               ),
               targetIndex: i,
               targetPos,
-              targetName: target.name
+              targetName: target.name,
+              distance3D: distance3D.toFixed(2) // Add the distance to result
             };
             
             allResults.push({ 
@@ -1694,6 +1703,10 @@
                 <span class="result-value">${targetPos[0]}, ${targetPos[1]}, ${
             targetPos[2]
           }</span>
+              </div>
+              <div class="result-item">
+                <span class="result-label">Distance (3D):</span>
+                <span class="result-value">${result.distance3D} blocks</span>
               </div>
               <div class="result-item">
                 <span class="result-label">Yaw:</span>
