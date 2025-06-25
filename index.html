@@ -433,6 +433,22 @@
               <option value="east">East (+X)</option>
             </select>
           </div>
+          <div class="form-row">
+            <label
+              for="resolution"
+              class="tooltip"
+              data-tooltip="Higher values = faster but less precise calculations"
+              >Resolution:</label
+            >
+            <input
+              type="number"
+              id="resolution"
+              min="1"
+              step="1"
+              placeholder="Resolution (1-100)"
+              value="30"
+            />
+          </div>
         </div>
 
         <div class="input-group">
@@ -968,7 +984,7 @@
           power,
           direction,
           barrelLength,
-          resolution = 20
+          resolution = 30
         ) {
           const [cannonX, cannonY, cannonZ] = cannonPos;
           const initialSpeed = power * this.SPEED_MULTIPLIER;
@@ -1266,6 +1282,7 @@
           const power = parseInt(document.getElementById("power").value);
           const direction = document.getElementById("direction").value;
           const length = parseInt(document.getElementById("length").value);
+          const resolution = parseInt(document.getElementById("resolution").value);
           const currentPitch = parseFloat(
             document.getElementById("currentPitch").value
           );
@@ -1275,15 +1292,20 @@
 
           // Validate inputs
           if (
-            [...cannonPos, power, length, currentYaw, currentPitch].some(
+            [...cannonPos, power, length, resolution, currentYaw, currentPitch].some(
               (val) => isNaN(val)
             )
           ) {
             throw new Error("Please fill all cannon fields with valid numbers");
           }
 
-          if (power <= 0 || length <= 0) {
-            throw new Error("Power and length must be positive numbers");
+          if (power <= 0 || length <= 0 || resolution <= 0) {
+            throw new Error("Power, length, and resolution must be positive numbers");
+          }
+          
+          // Ensure resolution is a whole number
+          if (!Number.isInteger(resolution)) {
+            throw new Error("Resolution must be a whole number");
           }
 
           // Array to store all results
@@ -1385,7 +1407,7 @@
                 power,
                 direction,
                 length,
-                40 // Resolution (higher number = faster but less detailed)
+                resolution // User-defined resolution (higher number = faster but less detailed)
               );
 
               // Visualize the effective areas on canvases with all targets
