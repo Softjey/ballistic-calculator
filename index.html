@@ -218,6 +218,26 @@
       .tooltip:hover::after {
         opacity: 1;
       }
+
+      canvas {
+        display: block;
+        margin: 20px auto 0;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        width: 100%;
+      }
+
+      .canvas-container {
+        margin-top: 20px;
+      }
+
+      .canvas-title {
+        text-align: center;
+        margin-bottom: 10px;
+        color: #495057;
+        font-weight: bold;
+      }
     </style>
   </head>
   <body>
@@ -419,6 +439,14 @@
               <span class="result-value" id="yawCommands1">-</span>
             </div>
           </div>
+
+          <div class="canvas-container">
+            <div class="canvas-title">Effective Area (Low Angle)</div>
+            <canvas id="canvas1" width="500" height="500"></canvas>
+            <div id="canvas1Loading" class="status" style="margin-top: 10px">
+              Click Calculate to see effective area
+            </div>
+          </div>
         </div>
 
         <div class="result-group">
@@ -457,6 +485,14 @@
             <div class="command-item">
               <span class="result-label">Yaw Commands:</span>
               <span class="result-value" id="yawCommands2">-</span>
+            </div>
+          </div>
+
+          <div class="canvas-container">
+            <div class="canvas-title">Effective Area (High Angle)</div>
+            <canvas id="canvas2" width="500" height="500"></canvas>
+            <div id="canvas2Loading" class="status" style="margin-top: 10px">
+              Click Calculate to see effective area
             </div>
           </div>
         </div>
@@ -859,6 +895,102 @@
           return `${angle.toFixed(2)}°`;
         }
 
+        static calculatePrecision({ timingError, flightTime }) {
+          return Math.max(
+            0,
+            Math.min(100, Math.round((1 - timingError / flightTime) * 100))
+          );
+        }
+
+        /**
+         * Analyzes potential target positions in a 2000×2000 block area and calculates precision values
+         * @param {Array} cannonPos - The [x, y, z] coordinates of the cannon
+         * @param {number} power - The power setting of the cannon
+         * @param {string} direction - The direction the cannon is facing (north, south, east, west)
+         * @param {number} barrelLength - The length of the cannon barrel
+         * @param {number} resolution - How many blocks to skip in the grid (higher values = faster but less precise)
+         * @returns {Object} - Grid of precision values with low and high angle solutions
+         */
+        static analyzePrecisionGrid(
+          cannonPos,
+          power,
+          direction,
+          barrelLength,
+          resolution = 20
+        ) {
+          const [cannonX, cannonY, cannonZ] = cannonPos;
+          const initialSpeed = power * this.SPEED_MULTIPLIER;
+          const gridSize = 2000;
+          const halfSize = gridSize / 2;
+          const gridData = {
+            low: [], // Precision data for low angle solutions
+            high: [], // Precision data for high angle solutions
+            xMin: cannonX - halfSize,
+            xMax: cannonX + halfSize,
+            zMin: cannonZ - halfSize,
+            zMax: cannonZ + halfSize,
+          };
+
+          // Calculate precision for positions in the grid
+          for (
+            let offsetX = -halfSize;
+            offsetX <= halfSize;
+            offsetX += resolution
+          ) {
+            const lowRow = [];
+            const highRow = [];
+
+            for (
+              let offsetZ = -halfSize;
+              offsetZ <= halfSize;
+              offsetZ += resolution
+            ) {
+              const targetX = cannonX + offsetX;
+              const targetZ = cannonZ + offsetZ;
+
+              // Skip the cannon position to avoid division by zero
+              if (offsetX === 0 && offsetZ === 0) {
+                lowRow.push(null);
+                highRow.push(null);
+                continue;
+              }
+
+              try {
+                // For each position, we'll calculate the trajectory to determine precision
+                // We'll use Y=0 as a default target height
+                const deltaX = cannonX - targetX;
+                const deltaZ = cannonZ - targetZ;
+                const distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+
+                // Find solutions (this might throw an error if target is unreachable)
+                const [solution1, solution2] = this.findBothSolutions(
+                  distance,
+                  initialSpeed,
+                  barrelLength,
+                  cannonY,
+                  0 // Use Y=0 as default target height
+                );
+
+                // Calculate precision percentages
+                const precision1 = this.calculatePrecision(solution1);
+                const precision2 = this.calculatePrecision(solution2);
+
+                lowRow.push(precision1);
+                highRow.push(precision2);
+              } catch (error) {
+                // Target unreachable or calculation error
+                lowRow.push(null);
+                highRow.push(null);
+              }
+            }
+
+            gridData.low.push(lowRow);
+            gridData.high.push(highRow);
+          }
+
+          return gridData;
+        }
+
         /**
          * Main calculation function
          */
@@ -921,15 +1053,7 @@
             );
 
             // FIXED: Better precision calculation
-            const precision = Math.max(
-              0,
-              Math.min(
-                100,
-                Math.round(
-                  (1 - solution.timingError / solution.flightTime) * 100
-                )
-              )
-            );
+            const precision = this.calculatePrecision(solution);
 
             return {
               yaw: yaw.toFixed(2),
@@ -1130,9 +1254,78 @@
           updateResultDisplay("1", result1);
           updateResultDisplay("2", result2);
 
+          // Calculate precision grid (with low resolution for performance)
           const statusElement = document.getElementById("status");
-          statusElement.textContent = "Calculation successful!";
+          statusElement.textContent =
+            "Calculation successful! Now calculating effective areas...";
           statusElement.className = "status success";
+
+          // Set loading indicators for canvases
+          document.getElementById("canvas1Loading").textContent =
+            "Calculating effective area...";
+          document.getElementById("canvas2Loading").textContent =
+            "Calculating effective area...";
+          document.getElementById("canvas1Loading").className = "status";
+          document.getElementById("canvas2Loading").className = "status";
+
+          // Use setTimeout to prevent UI freezing during heavy calculation
+          setTimeout(() => {
+            try {
+              // Update status to indicate calculation is in progress
+              statusElement.textContent =
+                "Analyzing possible target positions...";
+
+              const gridData = BallisticsCalculator.analyzePrecisionGrid(
+                cannonPos,
+                power,
+                direction,
+                length,
+                40 // Resolution (higher number = faster but less detailed)
+              );
+
+              // Visualize the effective areas on canvases
+              visualizeEffectiveArea(
+                "canvas1",
+                gridData,
+                cannonPos,
+                targetPos,
+                "low"
+              );
+              visualizeEffectiveArea(
+                "canvas2",
+                gridData,
+                cannonPos,
+                targetPos,
+                "high"
+              );
+
+              // Update loading indicators
+              document.getElementById("canvas1Loading").textContent =
+                "Low angle effectiveness";
+              document.getElementById("canvas2Loading").textContent =
+                "High angle effectiveness";
+              document.getElementById("canvas1Loading").className =
+                "status success";
+              document.getElementById("canvas2Loading").className =
+                "status success";
+
+              statusElement.textContent =
+                "Calculation and visualization successful!";
+            } catch (calcError) {
+              console.error("Visualization error:", calcError);
+              document.getElementById("canvas1Loading").textContent =
+                "Visualization error";
+              document.getElementById("canvas2Loading").textContent =
+                "Visualization error";
+              document.getElementById("canvas1Loading").className =
+                "status error";
+              document.getElementById("canvas2Loading").className =
+                "status error";
+
+              statusElement.textContent =
+                "Calculation successful, but visualization failed.";
+            }
+          }, 100);
         } catch (error) {
           const statusElement = document.getElementById("status");
           statusElement.textContent = error.message;
@@ -1163,6 +1356,196 @@
           result.pitchCommands;
         document.getElementById(`yawCommands${suffix}`).textContent =
           result.yawCommands;
+      }
+
+      /**
+       * Visualizes the effective area of the cannon on canvas
+       * @param {string} canvasId - The ID of the canvas element to draw on
+       * @param {Object} gridData - Precision data from analyzePrecisionGrid
+       * @param {Array} cannonPos - The [x, y, z] coordinates of the cannon
+       * @param {Array} targetPos - The [x, y, z] coordinates of the target
+       * @param {string} solutionType - Which solution to visualize ("low" or "high")
+       */
+      function visualizeEffectiveArea(
+        canvasId,
+        gridData,
+        cannonPos,
+        targetPos,
+        solutionType = "low"
+      ) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext("2d");
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+
+        // Clear the canvas
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+        // Draw background grid
+        ctx.fillStyle = "#f8f9fa";
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        // Draw grid lines
+        ctx.strokeStyle = "rgba(0,0,0,0.1)";
+        ctx.lineWidth = 1;
+
+        // Draw grid lines (every 200 blocks)
+        const gridLineSpacing = 200;
+        const gridLineSpacingPx = (gridLineSpacing / 2000) * canvasWidth;
+
+        // Vertical grid lines
+        for (
+          let x = gridLineSpacingPx;
+          x < canvasWidth;
+          x += gridLineSpacingPx
+        ) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvasHeight);
+          ctx.stroke();
+        }
+
+        // Horizontal grid lines
+        for (
+          let y = gridLineSpacingPx;
+          y < canvasHeight;
+          y += gridLineSpacingPx
+        ) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvasWidth, y);
+          ctx.stroke();
+        }
+
+        // Draw the precision data as a heatmap
+        const grid = gridData[solutionType];
+
+        if (!grid || grid.length === 0) {
+          ctx.fillStyle = "black";
+          ctx.font = "14px Arial";
+          ctx.textAlign = "center";
+          ctx.fillText(
+            "No precision data available",
+            canvasWidth / 2,
+            canvasHeight / 2
+          );
+          return;
+        }
+
+        // Calculate cell size for visualization
+        const cellsPerSide = grid.length;
+        const cellSize = canvasWidth / cellsPerSide;
+
+        // Draw each precision cell
+        for (let y = 0; y < grid.length; y++) {
+          const row = grid[y];
+          for (let x = 0; x < row.length; x++) {
+            const precision = row[x];
+            if (precision !== null) {
+              // Calculate color based on precision value
+              // Higher precision = more opaque blue/orange
+              const threshold = 0;
+              const maxEffectivePrecision = 100 - threshold;
+              const effectivePrecision = Math.max(precision - threshold, 0);
+              const alpha = effectivePrecision / maxEffectivePrecision;
+              ctx.fillStyle =
+                solutionType === "low"
+                  ? `rgba(0, 128, 255, ${alpha})` // Blue for low angle
+                  : `rgba(255, 128, 0, ${alpha})`; // Orange for high angle
+
+              // Calculate pixel position on canvas
+              const pixelX = x * cellSize;
+              const pixelY = y * cellSize;
+
+              ctx.fillRect(pixelX, pixelY, cellSize, cellSize);
+            }
+          }
+        }
+
+        // Convert world coordinates to canvas coordinates
+        function worldToCanvas(worldX, worldZ) {
+          // Calculate position relative to the gridData bounds
+          const gridRelativeX =
+            (worldX - gridData.xMin) / (gridData.xMax - gridData.xMin);
+          const gridRelativeZ =
+            (worldZ - gridData.zMin) / (gridData.zMax - gridData.zMin);
+
+          // Convert to canvas coordinates
+          return [gridRelativeX * canvasWidth, gridRelativeZ * canvasHeight];
+        }
+
+        // Draw the cannon position
+        const [canvasCannonX, canvasCannonZ] = worldToCanvas(
+          cannonPos[0],
+          cannonPos[2]
+        );
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(canvasCannonX, canvasCannonZ, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillText("Cannon", canvasCannonX + 8, canvasCannonZ + 4);
+
+        // Draw the target position (if within range)
+        if (targetPos) {
+          const [canvasTargetX, canvasTargetZ] = worldToCanvas(
+            targetPos[0],
+            targetPos[2]
+          );
+          ctx.fillStyle = "green";
+          ctx.beginPath();
+          ctx.arc(canvasTargetX, canvasTargetZ, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillText("Target", canvasTargetX + 8, canvasTargetZ + 4);
+
+          // Draw a line connecting cannon and target
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+          ctx.beginPath();
+          ctx.moveTo(canvasCannonX, canvasCannonZ);
+          ctx.lineTo(canvasTargetX, canvasTargetZ);
+          ctx.stroke();
+        }
+
+        // Add legend
+        ctx.fillStyle = "black";
+        ctx.font = "12px Arial";
+        ctx.fillText(
+          `${solutionType === "low" ? "Low" : "High"} Angle Solution Range`,
+          10,
+          20
+        );
+
+        // Draw precision scale
+        const legendWidth = 20;
+        const legendHeight = 100;
+        const legendX = canvasWidth - legendWidth - 10;
+        const legendY = 10;
+
+        // Draw gradient legend
+        const gradient = ctx.createLinearGradient(
+          0,
+          legendY,
+          0,
+          legendY + legendHeight
+        );
+        gradient.addColorStop(
+          0,
+          solutionType === "low"
+            ? "rgba(0, 128, 255, 1)" // Blue for low angle
+            : "rgba(255, 128, 0, 1)"
+        ); // Orange for high angle
+        gradient.addColorStop(1, "rgba(255, 255, 255, 0.1)");
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(legendX, legendY, legendWidth, legendHeight);
+
+        // Draw legend border
+        ctx.strokeStyle = "black";
+        ctx.strokeRect(legendX, legendY, legendWidth, legendHeight);
+
+        // Add legend labels
+        ctx.fillStyle = "black";
+        ctx.fillText("100%", legendX - 30, legendY + 10);
+        ctx.fillText("0%", legendX - 20, legendY + legendHeight - 5);
       }
     </script>
   </body>
