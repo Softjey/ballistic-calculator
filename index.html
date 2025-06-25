@@ -955,9 +955,21 @@
         // static GEARSHIFT_ERROR_COEFFICIENT = 0.0375;
 
         static formatCommands(commands) {
-          return commands.join(", ");
-        }
+          return commands
+            .map((command) => {
+              const rounded =
+                Math.sign(command) * Math.round(Math.abs(command));
+              const roundedWith2Decimals =
+                Math.round(Math.abs(command) * 100) / 100;
 
+              if (rounded === roundedWith2Decimals) {
+                return `${rounded}°`;
+              }
+
+              return `${rounded}°(${roundedWith2Decimals}°)`;
+            })
+            .join(", ");
+        }
         static getCommands({ delta, gearshiftSpeed }) {
           const gearshiftError =
             gearshiftSpeed * this.GEARSHIFT_ERROR_COEFFICIENT;
