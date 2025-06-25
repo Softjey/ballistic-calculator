@@ -234,7 +234,7 @@
               id="xCannon"
               step="0.1"
               placeholder="X coordinate"
-              value="311"
+              value="337"
             />
           </div>
           <div class="form-row">
@@ -244,7 +244,7 @@
               id="yCannon"
               step="0.1"
               placeholder="Y coordinate"
-              value="-8"
+              value="-9"
             />
           </div>
           <div class="form-row">
@@ -254,7 +254,7 @@
               id="zCannon"
               step="0.1"
               placeholder="Z coordinate"
-              value="-78"
+              value="-80"
             />
           </div>
         </div>
@@ -268,7 +268,7 @@
               id="xTarget"
               step="0.1"
               placeholder="X coordinate"
-              value="645"
+              value="627"
             />
           </div>
           <div class="form-row">
@@ -288,7 +288,7 @@
               id="zTarget"
               step="0.1"
               placeholder="Z coordinate"
-              value="225"
+              value="-314"
             />
           </div>
         </div>
@@ -323,7 +323,7 @@
               id="length"
               min="1"
               placeholder="Barrel length"
-              value="2"
+              value="4"
             />
           </div>
           <div class="form-row">
@@ -951,7 +951,8 @@
       class GearshiftCommandsCalculator {
         static GEARSHIFT_FACTOR = 8;
         static MAX_GEARSHIFT_ANGLE_PER_COMMAND = 360;
-        static GEARSHIFT_ERROR_COEFFICIENT = 0; // 0.0375;
+        static GEARSHIFT_ERROR_COEFFICIENT = 0;
+        // static GEARSHIFT_ERROR_COEFFICIENT = 0.0375;
 
         static formatCommands(commands) {
           return commands.join(", ");
@@ -1103,12 +1104,12 @@
               {
                 currentAngel: currentYaw,
                 targetAngel: parseFloat(calcResult2.yaw),
-                gearshiftSpeed: 32,
+                gearshiftSpeed: 64,
               },
               {
                 currentAngel: currentPitch,
                 targetAngel: parseFloat(calcResult2.pitch),
-                gearshiftSpeed: 32,
+                gearshiftSpeed: 64,
               }
             ),
           };
