@@ -1128,7 +1128,8 @@
               const rounded =
                 Math.sign(command) * Math.round(Math.abs(command));
               const roundedWith2Decimals =
-                Math.round(Math.abs(command) * 100) / 100;
+                Math.sign(command) *
+                (Math.round(Math.abs(command) * 100) / 100);
 
               if (rounded === roundedWith2Decimals) {
                 return `${rounded}°`;
