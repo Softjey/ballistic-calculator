@@ -346,6 +346,14 @@
               value="-314"
             />
           </div>
+          <div class="form-row">
+            <label for="targetName">Name (optional):</label>
+            <input
+              type="text"
+              id="targetName"
+              placeholder="Target name (optional)"
+            />
+          </div>
           <div
             class="form-row"
             style="justify-content: center; margin-top: 10px"
@@ -373,12 +381,12 @@
               id="targets"
               rows="5"
               style="width: 100%; resize: vertical; font-family: monospace"
-              placeholder="Format: x,y,z (one target per line)&#10;627,-49,-314&#10;700,-30,-250"
+              placeholder="Format: x,y,z[,name] (one target per line)&#10;627,-49,-314,Castle&#10;700,-30,-250"
             >
 627,-49,-314</textarea
             >
             <div style="margin-top: 5px; font-size: 0.9em; color: #6c757d">
-              Enter each target's coordinates on a new line in the format: x,y,z
+              Enter each target's coordinates with optional name: x,y,z[,name]. If name is omitted, "Target N" will be used.
             </div>
           </div>
         </div>
@@ -1234,15 +1242,25 @@
 
           // Parse all target positions
           const targetsList = targetsLines.map((line, index) => {
-            const parts = line
-              .split(",")
-              .map((part) => parseFloat(part.trim()));
-            if (parts.length !== 3 || parts.some((val) => isNaN(val))) {
-              throw new Error(
-                `Invalid target format on line ${index + 1}. Use format: x,y,z`
-              );
+            const parts = line.split(',').map(part => part.trim());
+            
+            // Parse coordinates
+            const coords = parts.slice(0, 3).map(part => parseFloat(part));
+            if (coords.length !== 3 || coords.some(val => isNaN(val))) {
+              throw new Error(`Invalid target format on line ${index + 1}. Use format: x,y,z[,name]`);
             }
-            return parts;
+            
+            // Parse optional name or generate default name "Target N"
+            let name = parts[3];
+            if (!name || name.trim() === '') {
+              name = `Target ${index + 1}`;
+            }
+            
+            return {
+              coords,
+              name,
+              index
+            };
           });
 
           const power = parseInt(document.getElementById("power").value);
@@ -1273,18 +1291,18 @@
 
           // Calculate trajectory for each target
           for (let i = 0; i < targetsList.length; i++) {
-            const targetPos = targetsList[i];
-
+            const target = targetsList[i];
+            const targetPos = target.coords;
+            
             // Calculate trajectory for this target
-            const [calcResult1, calcResult2] =
-              BallisticsCalculator.calculateTrajectory(
-                cannonPos,
-                targetPos,
-                power,
-                direction,
-                length
-              );
-
+            const [calcResult1, calcResult2] = BallisticsCalculator.calculateTrajectory(
+              cannonPos,
+              targetPos,
+              power,
+              direction,
+              length
+            );
+            
             const result1 = {
               ...calcResult1,
               ...GearshiftCommandsCalculator.calculateCommands(
@@ -1301,8 +1319,9 @@
               ),
               targetIndex: i,
               targetPos,
+              targetName: target.name
             };
-
+            
             const result2 = {
               ...calcResult2,
               ...GearshiftCommandsCalculator.calculateCommands(
@@ -1319,12 +1338,14 @@
               ),
               targetIndex: i,
               targetPos,
+              targetName: target.name
             };
-
-            allResults.push({
+            
+            allResults.push({ 
               target: targetPos,
-              solution1: result1,
-              solution2: result2,
+              targetName: target.name, 
+              solution1: result1, 
+              solution2: result2 
             });
           }
 
@@ -1575,7 +1596,8 @@
           "#006666",
         ];
 
-        targetsList.forEach((targetPos, index) => {
+        targetsList.forEach((target, index) => {
+          const targetPos = target.coords;
           const [canvasTargetX, canvasTargetZ] = worldToCanvas(
             targetPos[0],
             targetPos[2]
@@ -1590,9 +1612,9 @@
           ctx.arc(canvasTargetX, canvasTargetZ, 5, 0, Math.PI * 2);
           ctx.fill();
 
-          // Draw target label
+          // Draw target label with name
           ctx.fillText(
-            `Target ${index + 1}`,
+            target.name,
             canvasTargetX + 8,
             canvasTargetZ + 4
           );
@@ -1657,6 +1679,7 @@
         const createResultTemplate = (index, suffix) => {
           const result = allResults[index][`solution${suffix}`];
           const targetPos = result.targetPos;
+          const targetName = result.targetName;
 
           return `
             <div class="target-result ${
@@ -1664,6 +1687,10 @@
             }" data-target="${index}">
               <div class="result-item">
                 <span class="result-label">Target:</span>
+                <span class="result-value">${targetName}</span>
+              </div>
+              <div class="result-item">
+                <span class="result-label">Coordinates:</span>
                 <span class="result-value">${targetPos[0]}, ${targetPos[1]}, ${
             targetPos[2]
           }</span>
@@ -1712,10 +1739,10 @@
         const createTabsHtml = (index, suffix) => {
           let html = "";
           for (let i = 0; i < allResults.length; i++) {
-            const targetPos = allResults[i].target;
+            const targetName = allResults[i].targetName;
             const isActive = i === 0 ? "active" : "";
             html += `<div class="target-tab ${isActive}" data-target="${i}" data-suffix="${suffix}">
-              Target ${i + 1}: ${targetPos[0]},${targetPos[1]},${targetPos[2]}
+              ${targetName}
             </div>`;
           }
           return html;
@@ -1768,13 +1795,19 @@
         const x = parseFloat(document.getElementById("xTarget").value);
         const y = parseFloat(document.getElementById("yTarget").value);
         const z = parseFloat(document.getElementById("zTarget").value);
+        const name = document.getElementById("targetName").value.trim();
 
         if (isNaN(x) || isNaN(y) || isNaN(z)) {
           alert("Invalid target coordinates");
           return;
         }
 
-        const targetLine = `${x},${y},${z}`;
+        // Create target line with or without name
+        let targetLine = `${x},${y},${z}`;
+        if (name) {
+          targetLine += `,${name}`;
+        }
+        
         const targetsArea = document.getElementById("targets");
 
         // Add the new target to the existing list
@@ -1788,6 +1821,7 @@
         document.getElementById("xTarget").value = "";
         document.getElementById("yTarget").value = "";
         document.getElementById("zTarget").value = "";
+        document.getElementById("targetName").value = "";
       }
     </script>
   </body>
