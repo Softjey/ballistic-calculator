@@ -6,11 +6,13 @@
     <title>Create Big Cannons - Ballistics Calculator</title>
     <style>
       body {
+        width: 100vw;
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         margin: 0;
         padding: 20px;
         min-height: 100vh;
+        box-sizing: border-box;
       }
 
       .container {
@@ -32,7 +34,7 @@
 
       .input-section {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 20px;
         margin-bottom: 30px;
       }
@@ -59,15 +61,16 @@
       }
 
       label {
-        min-width: 120px;
         font-weight: bold;
         color: #495057;
       }
 
       input,
+      textarea,
       select {
         flex: 1;
         padding: 10px;
+        width: 100%;
         border: 2px solid #ced4da;
         border-radius: 5px;
         font-size: 16px;
@@ -103,7 +106,7 @@
 
       .results {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 20px;
         margin-top: 30px;
       }
@@ -281,7 +284,7 @@
 
       <div class="input-section">
         <div class="input-group">
-          <h3>📍 Cannon Position</h3>
+          <h3>🚀 Cannon specifications</h3>
           <div class="form-row">
             <label for="xCannon">X:</label>
             <input
@@ -312,103 +315,6 @@
               value="-80"
             />
           </div>
-        </div>
-
-        <div class="input-group">
-          <h3>🎯 Target Position</h3>
-          <div class="form-row">
-            <label for="xTarget">X:</label>
-            <input
-              type="number"
-              id="xTarget"
-              step="0.1"
-              placeholder="X coordinate"
-              value="627"
-            />
-          </div>
-          <div class="form-row">
-            <label for="yTarget">Y:</label>
-            <input
-              type="number"
-              id="yTarget"
-              step="0.1"
-              placeholder="Y coordinate"
-              value="-49"
-            />
-          </div>
-          <div class="form-row">
-            <label for="zTarget">Z:</label>
-            <input
-              type="number"
-              id="zTarget"
-              step="0.1"
-              placeholder="Z coordinate"
-              value="-314"
-            />
-          </div>
-          <div class="form-row">
-            <label for="targetName">Name (optional):</label>
-            <input
-              type="text"
-              id="targetName"
-              placeholder="Target name (optional)"
-            />
-          </div>
-          <div
-            class="form-row"
-            style="justify-content: center; margin-top: 10px"
-          >
-            <button
-              onclick="addCurrentTarget()"
-              style="
-                padding: 8px 15px;
-                background: #6f42c1;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-              "
-            >
-              Add Current Target to List
-            </button>
-          </div>
-          <div
-            class="form-row"
-            style="flex-direction: column; margin-top: 15px"
-          >
-            <label for="targets">Target List (one per line):</label>
-            <textarea
-              id="targets"
-              rows="5"
-              style="width: 100%; resize: vertical; font-family: monospace"
-              placeholder="Format: x,y,z[,name] (one target per line)&#10;627,-49,-314,Castle&#10;700,-30,-250"
-            >
-627,-49,-314</textarea
-            >
-            <div style="margin-top: 5px; font-size: 0.9em; color: #6c757d">
-              Enter each target's coordinates with optional name: x,y,z[,name]. If name is omitted, "Target N" will be used.
-            </div>
-          </div>
-        </div>
-
-        <div class="input-group">
-          <h3>⚙️ Cannon Configuration</h3>
-          <div class="form-row">
-            <label
-              for="power"
-              class="tooltip"
-              data-tooltip="Gunpowder charge level"
-              >Power:</label
-            >
-            <input
-              type="number"
-              id="power"
-              min="1"
-              max="10"
-              placeholder="Power level"
-              value="4"
-            />
-          </div>
           <div class="form-row">
             <label
               for="length"
@@ -433,26 +339,48 @@
               <option value="east">East (+X)</option>
             </select>
           </div>
-          <div class="form-row">
-            <label
-              for="resolution"
-              class="tooltip"
-              data-tooltip="Higher values = faster but less precise calculations"
-              >Resolution:</label
+        </div>
+
+        <div class="input-group">
+          <h3>🎯 Targets (one per line):</h3>
+          <div
+            class="form-row"
+            style="flex-direction: column; margin-top: 15px"
+          >
+            <div style="margin-top: 5px; font-size: 0.9em; color: #6c757d">
+              Enter each target's coordinates with optional name: x,y,z[,name].
+              If name is omitted, "Target N" will be used.
+            </div>
+            <textarea
+              id="targets"
+              rows="11"
+              style="font-size: 14px; width: 100%; resize: vertical; font-family: monospace"
+              placeholder="Format: x,y,z[,name] (one target per line)&#10;627,-49,-314,Castle&#10;700,-30,-250"
             >
-            <input
-              type="number"
-              id="resolution"
-              min="1"
-              step="1"
-              placeholder="Resolution (1-100)"
-              value="30"
-            />
+627,-49,-314</textarea
+            >
           </div>
         </div>
 
         <div class="input-group">
-          <h3>🔧 Current Cannon Angles</h3>
+          <h3>⚙️ Cannon Configuration</h3>
+          <div class="form-row">
+            <label
+              for="power"
+              class="tooltip"
+              data-tooltip="Gunpowder charge level"
+              >Power:</label
+            >
+            <input
+              type="number"
+              id="power"
+              min="1"
+              max="10"
+              placeholder="Power level"
+              value="4"
+            />
+          </div>
+
           <div class="form-row">
             <label
               for="currentPitch"
@@ -483,6 +411,24 @@
               placeholder="Current yaw (°)"
               value="180"
               readonly
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <h3>🔧 Calculation parameters</h3>
+          <div class="form-row">
+            <label for="resolution" class="tooltip"
+              >Effective area Resolution:</label
+            >
+            <input
+              type="number"
+              id="resolution"
+              min="1"
+              step="1"
+              style="min-width: 40px;"
+              placeholder="Resolution (1-100) Higher values = faster but less precise calculations"
+              value="25"
             />
           </div>
         </div>
@@ -559,40 +505,6 @@
       document.addEventListener("DOMContentLoaded", function () {
         updateCurrentAngles();
       });
-
-      // Function to add the currently displayed target to the targets list
-      function addCurrentTarget() {
-        const xTarget = document.getElementById("xTarget").value;
-        const yTarget = document.getElementById("yTarget").value;
-        const zTarget = document.getElementById("zTarget").value;
-
-        // Validate inputs
-        if (
-          [xTarget, yTarget, zTarget].some(
-            (val) => !val || isNaN(parseFloat(val))
-          )
-        ) {
-          alert("Please enter valid coordinates for the target");
-          return;
-        }
-
-        const targetCoord = `${xTarget},${yTarget},${zTarget}`;
-        const targetsTextarea = document.getElementById("targets");
-        const currentTargets = targetsTextarea.value.trim();
-
-        // Add the new target to the list
-        if (currentTargets) {
-          // Check if this target already exists in the list to avoid duplicates
-          const targetLines = currentTargets.split("\n");
-          if (!targetLines.includes(targetCoord)) {
-            targetsTextarea.value = `${currentTargets}\n${targetCoord}`;
-          } else {
-            alert("This target is already in the list");
-          }
-        } else {
-          targetsTextarea.value = targetCoord;
-        }
-      }
 
       class BallisticsCalculator {
         // Physics constants based on Create Big Cannons mechanics
@@ -1258,31 +1170,37 @@
 
           // Parse all target positions
           const targetsList = targetsLines.map((line, index) => {
-            const parts = line.split(',').map(part => part.trim());
-            
+            const parts = line.split(",").map((part) => part.trim());
+
             // Parse coordinates
-            const coords = parts.slice(0, 3).map(part => parseFloat(part));
-            if (coords.length !== 3 || coords.some(val => isNaN(val))) {
-              throw new Error(`Invalid target format on line ${index + 1}. Use format: x,y,z[,name]`);
+            const coords = parts.slice(0, 3).map((part) => parseFloat(part));
+            if (coords.length !== 3 || coords.some((val) => isNaN(val))) {
+              throw new Error(
+                `Invalid target format on line ${
+                  index + 1
+                }. Use format: x,y,z[,name]`
+              );
             }
-            
+
             // Parse optional name or generate default name "Target N"
             let name = parts[3];
-            if (!name || name.trim() === '') {
+            if (!name || name.trim() === "") {
               name = `Target ${index + 1}`;
             }
-            
+
             return {
               coords,
               name,
-              index
+              index,
             };
           });
 
           const power = parseInt(document.getElementById("power").value);
           const direction = document.getElementById("direction").value;
           const length = parseInt(document.getElementById("length").value);
-          const resolution = parseInt(document.getElementById("resolution").value);
+          const resolution = parseInt(
+            document.getElementById("resolution").value
+          );
           const currentPitch = parseFloat(
             document.getElementById("currentPitch").value
           );
@@ -1292,17 +1210,24 @@
 
           // Validate inputs
           if (
-            [...cannonPos, power, length, resolution, currentYaw, currentPitch].some(
-              (val) => isNaN(val)
-            )
+            [
+              ...cannonPos,
+              power,
+              length,
+              resolution,
+              currentYaw,
+              currentPitch,
+            ].some((val) => isNaN(val))
           ) {
             throw new Error("Please fill all cannon fields with valid numbers");
           }
 
           if (power <= 0 || length <= 0 || resolution <= 0) {
-            throw new Error("Power, length, and resolution must be positive numbers");
+            throw new Error(
+              "Power, length, and resolution must be positive numbers"
+            );
           }
-          
+
           // Ensure resolution is a whole number
           if (!Number.isInteger(resolution)) {
             throw new Error("Resolution must be a whole number");
@@ -1315,23 +1240,24 @@
           for (let i = 0; i < targetsList.length; i++) {
             const target = targetsList[i];
             const targetPos = target.coords;
-            
+
             // Calculate 3D Euclidean distance between cannon and target
             const distance3D = Math.sqrt(
-              Math.pow(cannonPos[0] - targetPos[0], 2) + 
-              Math.pow(cannonPos[1] - targetPos[1], 2) + 
-              Math.pow(cannonPos[2] - targetPos[2], 2)
+              Math.pow(cannonPos[0] - targetPos[0], 2) +
+                Math.pow(cannonPos[1] - targetPos[1], 2) +
+                Math.pow(cannonPos[2] - targetPos[2], 2)
             );
-            
+
             // Calculate trajectory for this target
-            const [calcResult1, calcResult2] = BallisticsCalculator.calculateTrajectory(
-              cannonPos,
-              targetPos,
-              power,
-              direction,
-              length
-            );
-            
+            const [calcResult1, calcResult2] =
+              BallisticsCalculator.calculateTrajectory(
+                cannonPos,
+                targetPos,
+                power,
+                direction,
+                length
+              );
+
             const result1 = {
               ...calcResult1,
               ...GearshiftCommandsCalculator.calculateCommands(
@@ -1349,9 +1275,9 @@
               targetIndex: i,
               targetPos,
               targetName: target.name,
-              distance3D: distance3D.toFixed(2) // Add the distance to result
+              distance3D: distance3D.toFixed(2), // Add the distance to result
             };
-            
+
             const result2 = {
               ...calcResult2,
               ...GearshiftCommandsCalculator.calculateCommands(
@@ -1369,14 +1295,14 @@
               targetIndex: i,
               targetPos,
               targetName: target.name,
-              distance3D: distance3D.toFixed(2) // Add the distance to result
+              distance3D: distance3D.toFixed(2), // Add the distance to result
             };
-            
-            allResults.push({ 
+
+            allResults.push({
               target: targetPos,
-              targetName: target.name, 
-              solution1: result1, 
-              solution2: result2 
+              targetName: target.name,
+              solution1: result1,
+              solution2: result2,
             });
           }
 
@@ -1644,11 +1570,7 @@
           ctx.fill();
 
           // Draw target label with name
-          ctx.fillText(
-            target.name,
-            canvasTargetX + 8,
-            canvasTargetZ + 4
-          );
+          ctx.fillText(target.name, canvasTargetX + 8, canvasTargetZ + 4);
 
           // Draw a line connecting cannon and target
           ctx.strokeStyle = targetColors[colorIndex];
@@ -1824,39 +1746,6 @@
               .classList.add("active");
           });
         });
-      }
-
-      function addCurrentTarget() {
-        const x = parseFloat(document.getElementById("xTarget").value);
-        const y = parseFloat(document.getElementById("yTarget").value);
-        const z = parseFloat(document.getElementById("zTarget").value);
-        const name = document.getElementById("targetName").value.trim();
-
-        if (isNaN(x) || isNaN(y) || isNaN(z)) {
-          alert("Invalid target coordinates");
-          return;
-        }
-
-        // Create target line with or without name
-        let targetLine = `${x},${y},${z}`;
-        if (name) {
-          targetLine += `,${name}`;
-        }
-        
-        const targetsArea = document.getElementById("targets");
-
-        // Add the new target to the existing list
-        if (targetsArea.value.trim()) {
-          targetsArea.value += `\n${targetLine}`;
-        } else {
-          targetsArea.value = targetLine;
-        }
-
-        // Clear the individual target fields
-        document.getElementById("xTarget").value = "";
-        document.getElementById("yTarget").value = "";
-        document.getElementById("zTarget").value = "";
-        document.getElementById("targetName").value = "";
       }
     </script>
   </body>
