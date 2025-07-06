@@ -354,7 +354,12 @@
             <textarea
               id="targets"
               rows="11"
-              style="font-size: 14px; width: 100%; resize: vertical; font-family: monospace"
+              style="
+                font-size: 14px;
+                width: 100%;
+                resize: vertical;
+                font-family: monospace;
+              "
               placeholder="Format: x,y,z[,name] (one target per line)&#10;627,-49,-314,Castle&#10;700,-30,-250"
             >
 627,-49,-314</textarea
@@ -426,7 +431,7 @@
               id="resolution"
               min="1"
               step="1"
-              style="min-width: 40px;"
+              style="min-width: 40px"
               placeholder="Resolution (1-100) Higher values = faster but less precise calculations"
               value="25"
             />
@@ -866,15 +871,6 @@
           return yaw;
         }
 
-        /**
-         * Formats angle for display, handling out-of-range values
-         */
-        static formatAngle(angle) {
-          if (angle > 60.5) return "Over 60°";
-          if (angle < -29.5) return "Under -30°";
-          return `${angle.toFixed(2)}°`;
-        }
-
         static calculatePrecision({ timingError, flightTime }) {
           return Math.max(
             0,
@@ -1036,8 +1032,8 @@
             const precision = this.calculatePrecision(solution);
 
             return {
-              yaw: yaw.toFixed(2),
-              pitch: this.formatAngle(solution.angle),
+              yaw: yaw,
+              pitch: solution.angle,
               airtimeTicks: Math.round(solution.flightTime),
               airtimeSeconds: airtimeSeconds.toFixed(2),
               fuzeTime: Math.max(0, fuzeTime),
@@ -1263,13 +1259,13 @@
               ...GearshiftCommandsCalculator.calculateCommands(
                 {
                   currentAngel: currentYaw,
-                  targetAngel: parseFloat(calcResult1.yaw),
-                  gearshiftSpeed: 16,
+                  targetAngel: calcResult1.yaw,
+                  gearshiftSpeed: 64,
                 },
                 {
                   currentAngel: currentPitch,
-                  targetAngel: parseFloat(calcResult1.pitch),
-                  gearshiftSpeed: 16,
+                  targetAngel: calcResult1.pitch,
+                  gearshiftSpeed: 64,
                 }
               ),
               targetIndex: i,
@@ -1283,12 +1279,12 @@
               ...GearshiftCommandsCalculator.calculateCommands(
                 {
                   currentAngel: currentYaw,
-                  targetAngel: parseFloat(calcResult2.yaw),
+                  targetAngel: calcResult2.yaw,
                   gearshiftSpeed: 64,
                 },
                 {
                   currentAngel: currentPitch,
-                  targetAngel: parseFloat(calcResult2.pitch),
+                  targetAngel: calcResult2.pitch,
                   gearshiftSpeed: 64,
                 }
               ),
@@ -1627,6 +1623,12 @@
         ctx.fillText("0%", legendX - 20, legendY + legendHeight - 5);
       }
 
+      function formatPitch(angle) {
+        if (angle > 60.5) return "Over 60°";
+        if (angle < -29.5) return "Under -30°";
+        return `${angle.toFixed(2)}°`;
+      }
+
       function updateMultiTargetResultDisplay(allResults) {
         // Create templates for target result content
         const createResultTemplate = (index, suffix) => {
@@ -1654,11 +1656,11 @@
               </div>
               <div class="result-item">
                 <span class="result-label">Yaw:</span>
-                <span class="result-value">${result.yaw}°</span>
+                <span class="result-value">${result.yaw.toFixed(2)}°</span>
               </div>
               <div class="result-item">
                 <span class="result-label">Pitch:</span>
-                <span class="result-value">${result.pitch}</span>
+                <span class="result-value">${formatPitch(result.pitch)}</span>
               </div>
               <div class="result-item">
                 <span class="result-label">Airtime (ticks):</span>
